@@ -6,94 +6,316 @@ metadata:
   labels:
     app: app-portal
 data:
+  # Página do portal. Os comentários <!--# echo ... --> são SSI: o nginx troca pelo
+  # nome do pod, IP, nó e versão antes de enviar a resposta.
   index.html: |
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>TechFleet - App Portal</title>
-        <style>
-            body {
-                font-family: 'Arial', sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                margin: 0;
-                padding: 0;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 100vh;
-                color: white;
-            }
-            .container {
-                text-align: center;
-                background: rgba(255, 255, 255, 0.1);
-                padding: 3rem;
-                border-radius: 20px;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-                border: 1px solid rgba(255, 255, 255, 0.18);
-                max-width: 600px;
-            }
-            h1 {
-                font-size: 3rem;
-                margin-bottom: 1rem;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            }
-            .subtitle {
-                font-size: 1.5rem;
-                margin-bottom: 2rem;
-                opacity: 0.9;
-            }
-            .info {
-                background: rgba(255, 255, 255, 0.2);
-                padding: 1.5rem;
-                border-radius: 10px;
-                margin: 1rem 0;
-            }
-            .status {
-                color: #4ade80;
-                font-weight: bold;
-                font-size: 1.2rem;
-            }
-            .pod-info {
-                font-size: 0.9rem;
-                opacity: 0.8;
-                margin-top: 1rem;
-            }
-            .logo {
-                font-size: 4rem;
-                margin-bottom: 1rem;
-            }
-        </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechFleet · App Portal</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B1F33'/%3E%3Cpath d='M8 20h10l3-8h3' stroke='%2322C8A6' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #F4F6F8;
+        --surface: #FFFFFF;
+        --ink: #0B1F33;
+        --ink-2: #44566B;
+        --ink-3: #7A8A9C;
+        --line: #E1E6EC;
+        --brand: #0B1F33;
+        --accent: #0F9F84;
+        --accent-soft: #E3F5F0;
+        --v2: #D9731A;
+        --v2-soft: #FCEEDF;
+        --danger: #C8412F;
+        --radius: 14px;
+        --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+      /* Barra superior */
+      .top { background: var(--brand); color: #fff; }
+      .top .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; letter-spacing: .2px; }
+      .brand svg { display: block; }
+      .brand small { font-weight: 400; color: #9FB3C8; margin-left: 4px; }
+      .top-meta { display: flex; align-items: center; gap: 18px; font-size: 13px; color: #C9D6E3; }
+      .chip { font-family: var(--mono); font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid #2A4460; color: #DCE6F0; }
+      .clock { font-family: var(--mono); }
+
+      /* Cabeçalho */
+      .hero { padding: 40px 0 28px; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
+      .eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.4px; color: var(--accent); margin-bottom: 10px; }
+      h1 { font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -.5px; }
+      .lead { margin-top: 10px; color: var(--ink-2); max-width: 620px; }
+      .status {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 16px 20px; min-width: 280px;
+      }
+      .pulse { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); position: relative; flex: none; }
+      .pulse::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: ping 1.8s ease-out infinite; }
+      .status.down .pulse { background: var(--danger); }
+      .status.down .pulse::after { border-color: var(--danger); }
+      @keyframes ping { 0% { transform: scale(.6); opacity: .7; } 100% { transform: scale(1.6); opacity: 0; } }
+      .status strong { display: block; font-size: 15px; }
+      .status span { font-size: 13px; color: var(--ink-3); }
+
+      /* Cartões de informação */
+      .cards { display: grid; grid-template-columns: 1.3fr .8fr .8fr 1.3fr; gap: 16px; }
+      .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+      .card dt { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+      .card dd { margin-top: 8px; font-family: var(--mono); font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+      .card dd.big { font-family: inherit; font-size: 22px; font-weight: 700; }
+      .card p { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+
+      /* Painel ao vivo */
+      .live { margin-top: 20px; display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; }
+      .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+      .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+      .panel-head h2 { font-size: 15px; font-weight: 600; }
+      .panel-head span { font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+      .legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); }
+      .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+
+      .pods { list-style: none; padding: 8px 12px 14px; }
+      .pod { display: grid; grid-template-columns: 1fr 88px 150px 56px; gap: 14px; align-items: center; padding: 11px 8px; border-bottom: 1px dashed var(--line); transition: opacity .4s; }
+      .pod:last-child { border-bottom: 0; }
+      .pod.gone { opacity: .35; }
+      .pod-name { font-family: var(--mono); font-size: 13.5px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .pod-name b { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+      .pod.gone .pod-name b { background: var(--ink-3); }
+      .pod-name em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ver { font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 6px; text-align: center; background: var(--accent-soft); color: #0A6E5B; }
+      .ver.alt { background: var(--v2-soft); color: #9A4E0C; }
+      .bar { height: 8px; background: #EDF1F4; border-radius: 99px; overflow: hidden; }
+      .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .5s ease; }
+      .bar i.alt { background: var(--v2); }
+      .count { font-family: var(--mono); font-size: 13px; text-align: right; color: var(--ink-2); }
+      .empty { padding: 40px 8px; text-align: center; color: var(--ink-3); font-size: 14px; }
+
+      .feed { list-style: none; padding: 6px 0 10px; font-family: var(--mono); font-size: 12px; }
+      .feed li { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; padding: 7px 20px; color: var(--ink-2); }
+      .feed li > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .feed li:first-child { background: #F7FAF9; color: var(--ink); }
+      .feed time { color: var(--ink-3); }
+      .feed .v { color: #0A6E5B; }
+      .feed .v.alt { color: #9A4E0C; }
+      .feed .err { color: var(--danger); }
+
+      /* Como roda */
+      .how { margin: 20px 0 36px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      .how article { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+      .how h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+      .how h3 code { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink-3); background: #EEF2F5; padding: 2px 6px; border-radius: 5px; }
+      .how p { margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
+      .how p code { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+
+      footer { border-top: 1px solid var(--line); padding: 18px 0 28px; font-size: 13px; color: var(--ink-3); }
+      footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+      @media (max-width: 960px) {
+        .hero { grid-template-columns: 1fr; }
+        .cards, .how { grid-template-columns: repeat(2, 1fr); }
+        .live { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 560px) {
+        .wrap { padding: 0 16px; }
+        .top-meta .chip:nth-child(2), .brand small { display: none; }
+        h1 { font-size: 27px; }
+        .cards, .how { grid-template-columns: 1fr; }
+        .pod { grid-template-columns: 1fr 72px 48px; }
+        .pod .bar { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) { .pulse::after { animation: none; } }
+    </style>
     </head>
     <body>
-        <div class="container">
-            <div class="logo">🚀</div>
-            <h1>TechFleet</h1>
-            <div class="subtitle">App Portal - Produção</div>
-            <div class="info">
-                <div class="status">✅ Sistema Online</div>
-                <p>Aplicação executando em ambiente Kubernetes</p>
-                <p><strong>Namespace:</strong> producao</p>
-                <p><strong>Service:</strong> NodePort 30080</p>
-                <p><strong>Replicas:</strong> Configuradas para alta disponibilidade</p>
-            </div>
-            <div class="pod-info">
-                <p>Pod ID: <span id="hostname"><!--# echo var="hostname" --></span></p>
-                <p>Data/Hora: <span id="datetime"></span></p>
-            </div>
+    <header class="top">
+      <div class="wrap">
+        <div class="brand">
+          <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#12304D"/><path d="M8 20h10l3-8h3" stroke="#22C8A6" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="23.5" r="1.6" fill="#fff"/><circle cx="18" cy="23.5" r="1.6" fill="#fff"/></svg>
+          TechFleet <small>App Portal</small>
         </div>
-        
-        <script>
-            // Atualiza data/hora
-            function updateDateTime() {
-                const now = new Date();
-                document.getElementById('datetime').textContent = 
-                    now.toLocaleString('pt-BR');
-            }
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-        </script>
+        <div class="top-meta">
+          <span class="chip">ns/producao</span>
+          <span class="chip">svc/app-portal-service</span>
+          <span class="clock" id="clock">--:--:--</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Ambiente de produção · Kubernetes</p>
+          <h1>Portal de aplicações da TechFleet</h1>
+          <p class="lead">Esta página é servida por um Deployment com réplicas do nginx atrás de um Service NodePort. O painel abaixo consulta o cluster a cada segundo e mostra qual pod respondeu, com a versão de cada um.</p>
+        </div>
+        <div class="status" id="status">
+          <span class="pulse"></span>
+          <div>
+            <strong id="statusText">Operacional</strong>
+            <span id="statusSub">aguardando a primeira resposta</span>
+          </div>
+        </div>
+      </section>
+
+      <dl class="cards">
+        <div class="card">
+          <dt>Pod que serviu esta página</dt>
+          <dd id="servedBy"><!--# echo var="hostname" --></dd>
+          <p>renderizado pelo nginx (SSI)</p>
+        </div>
+        <div class="card">
+          <dt>Versão</dt>
+          <dd class="big">v<!--# echo var="app_version" --></dd>
+          <p>env APP_VERSION</p>
+        </div>
+        <div class="card">
+          <dt>IP do pod</dt>
+          <dd><!--# echo var="server_addr" --></dd>
+          <p>rede de pods do cluster</p>
+        </div>
+        <div class="card">
+          <dt>Nó</dt>
+          <dd><!--# echo var="node_name" --></dd>
+          <p>Downward API · spec.nodeName</p>
+        </div>
+      </dl>
+
+      <section class="live">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Réplicas respondendo</h2>
+            <div class="legend" id="legend"></div>
+          </div>
+          <ul class="pods" id="pods"><li class="empty">Consultando o Service...</li></ul>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Últimas requisições</h2>
+            <span>GET /api/pod</span>
+          </div>
+          <ul class="feed" id="feed"></ul>
+        </div>
+      </section>
+
+      <section class="how">
+        <article>
+          <h3>Deployment <code>app-portal</code></h3>
+          <p>3 réplicas do <code>nginx</code>, com RollingUpdate de <code>maxSurge: 1</code> e <code>maxUnavailable: 1</code>.</p>
+        </article>
+        <article>
+          <h3>Service <code>NodePort</code></h3>
+          <p>Porta <code>30080</code> no nó, encaminhando para a porta <code>80</code> de cada pod com o label <code>app: app-portal</code>.</p>
+        </article>
+        <article>
+          <h3>ConfigMaps <code>html + nginx</code></h3>
+          <p>O HTML e a configuração do nginx ficam no cluster e são montados como volumes somente leitura.</p>
+        </article>
+        <article>
+          <h3>Probes <code>/healthz</code></h3>
+          <p>Readiness tira o pod do Service até ele responder; liveness reinicia o container se travar.</p>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>TechFleet é uma empresa fictícia · Checkpoint 2 de Kubernetes, FIAP</span>
+        <span>William Coelho · RM 556336</span>
+      </div>
+    </footer>
+
+    <script>
+    (function () {
+      'use strict';
+      var BASE = '<!--# echo var="app_version" -->';
+      var pods = {};           // nome -> { version, count, last }
+      var total = 0, fails = 0, lastOk = 0;
+      var podsEl = document.getElementById('pods');
+      var feedEl = document.getElementById('feed');
+      var legendEl = document.getElementById('legend');
+
+      function pad(n) { return (n < 10 ? '0' : '') + n; }
+      function hhmmss(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+      function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function alt(v) { return v !== BASE; }
+
+      function tick() { document.getElementById('clock').textContent = hhmmss(new Date()); }
+      setInterval(tick, 1000); tick();
+
+      function feed(html) {
+        var li = document.createElement('li');
+        li.innerHTML = html;
+        feedEl.insertBefore(li, feedEl.firstChild);
+        while (feedEl.children.length > 8) feedEl.removeChild(feedEl.lastChild);
+      }
+
+      function render() {
+        var now = Date.now();
+        var names = Object.keys(pods).filter(function (n) { return now - pods[n].last < 20000; });
+        names.sort(function (a, b) { return pods[a].version === pods[b].version ? (a < b ? -1 : 1) : (alt(pods[a].version) ? 1 : -1); });
+        if (!names.length) return;
+        var max = Math.max.apply(null, names.map(function (n) { return pods[n].count; }));
+        podsEl.innerHTML = names.map(function (n) {
+          var p = pods[n], a = alt(p.version) ? ' alt' : '';
+          var gone = now - p.last > 5000 ? ' gone' : '';
+          return '<li class="pod' + gone + '">' +
+            '<span class="pod-name"><b></b><em>' + esc(n) + '</em></span>' +
+            '<span class="ver' + a + '">v' + esc(p.version) + '</span>' +
+            '<span class="bar"><i class="' + a + '" style="width:' + Math.max(6, Math.round(p.count / max * 100)) + '%"></i></span>' +
+            '<span class="count">' + p.count + '</span></li>';
+        }).join('');
+        var versions = {};
+        names.forEach(function (n) { if (now - pods[n].last <= 5000) versions[pods[n].version] = true; });
+        legendEl.innerHTML = Object.keys(versions).sort().map(function (v) {
+          return '<span><i style="background:' + (alt(v) ? 'var(--v2)' : 'var(--accent)') + '"></i>v' + esc(v) + '</span>';
+        }).join('');
+        var live = names.filter(function (n) { return now - pods[n].last <= 5000; }).length;
+        var st = document.getElementById('status');
+        var down = now - lastOk > 4000;
+        st.classList.toggle('down', down);
+        document.getElementById('statusText').textContent = down ? 'Sem resposta' : 'Operacional';
+        document.getElementById('statusSub').textContent = down
+          ? 'o Service não respondeu nos últimos segundos'
+          : live + (live === 1 ? ' réplica ativa' : ' réplicas ativas') + ' · ' + total + ' requisições';
+      }
+
+      function poll() {
+        var t0 = performance.now();
+        fetch('/api/pod', { cache: 'no-store' })
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (d) {
+            var ms = Math.round(performance.now() - t0);
+            total++; lastOk = Date.now();
+            var p = pods[d.pod] || (pods[d.pod] = { version: d.version, count: 0, last: 0 });
+            p.count++; p.last = Date.now(); p.version = d.version;
+            var a = alt(d.version) ? ' alt' : '';
+            feed('<time>' + hhmmss(new Date()) + '</time><span>' + esc(d.pod) + ' <span class="v' + a + '">v' + esc(d.version) + '</span></span><span>' + ms + ' ms</span>');
+          })
+          .catch(function (e) {
+            fails++;
+            feed('<time>' + hhmmss(new Date()) + '</time><span class="err">falhou: ' + esc(e.message) + '</span><span></span>');
+          })
+          .then(function () { render(); setTimeout(poll, 900); });
+      }
+      poll();
+    })();
+    </script>
     </body>
     </html>
