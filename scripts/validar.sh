@@ -30,8 +30,17 @@ echo "2. Acesso pelo NodePort ($URL)"
 for _ in $(seq 1 30); do curl -fsS "$URL/healthz" >/dev/null 2>&1 && break; sleep 2; done
 curl -fsS "$URL/healthz" | grep -q ok && ok "/healthz responde" || falha "/healthz"
 curl -fsS "$URL/" | grep -q "Portal de aplicações da TechFleet" && ok "página do portal servida pelo ConfigMap" || falha "página"
-distintos=$(for _ in $(seq 1 30); do curl -fsS "$URL/api/pod"; echo; done | sed -E 's/.*"pod":"([^"]+)".*/\1/' | sort -u | wc -l)
-[ "$distintos" -ge 2 ] && ok "Service distribuiu 30 requisições entre $distintos pods" || falha "só $distintos pod respondeu"
+# Logo depois do rollout o Service pode ainda não ter os 3 endpoints prontos.
+for _ in $(seq 1 30); do
+  prontos=$(kubectl -n "$NS" get endpointslices -l kubernetes.io/service-name -o jsonpath='{range .items[*].endpoints[?(@.conditions.ready==true)]}x{end}' | wc -c)
+  [ "$prontos" -ge 3 ] && break; sleep 1
+done
+distintos=0
+for _ in 1 2 3; do
+  distintos=$(for _ in $(seq 1 60); do curl -fsS "$URL/api/pod"; echo; done | sed -E 's/.*"pod":"([^"]+)".*/\1/' | sort -u | wc -l)
+  [ "$distintos" -ge 2 ] && break; sleep 2
+done
+[ "$distintos" -ge 2 ] && ok "Service distribuiu as requisições entre $distintos pods" || falha "só $distintos pod respondeu"
 
 echo "3. Escalabilidade: 3 -> 5 réplicas"
 kubectl -n "$NS" scale deploy/"$DEPLOY" --replicas=5 >/dev/null
