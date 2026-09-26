@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-portal-nginx
+  namespace: producao
+  labels:
+    app: app-portal
+data:
+  # A imagem oficial do nginx passa os arquivos de /etc/nginx/templates pelo envsubst
+  # na inicialização: ${APP_VERSION} e ${NODE_NAME} vêm do Deployment. As variáveis
+  # do próprio nginx ($hostname, $server_addr) ficam intactas.
+  default.conf.template: |
+    server {
+        listen 80;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        # SSI: a página mostra o nome real do pod que respondeu
+        ssi on;
+        set $app_version "${APP_VERSION}";
+        set $node_name "${NODE_NAME}";
+
+        location / {
+            index index.html;
+            add_header Cache-Control "no-store";
+        }
+
+        # Quem respondeu esta requisição. Sem keep-alive, cada chamada abre uma
+        # conexão nova e o Service distribui entre as réplicas.
+        location = /api/pod {
+            keepalive_timeout 0;
+            default_type application/json;
+            add_header Cache-Control "no-store";
+            return 200 '{"pod":"$hostname","ip":"$server_addr","node":"$node_name","version":"$app_version"}';
+        }
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+    }
