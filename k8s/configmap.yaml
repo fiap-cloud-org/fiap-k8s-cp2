@@ -163,7 +163,7 @@ data:
         <div>
           <p class="eyebrow">Ambiente de produção · Kubernetes</p>
           <h1>Portal de aplicações da TechFleet</h1>
-          <p class="lead">Esta página é servida por um Deployment com réplicas do nginx atrás de um Service NodePort. O painel abaixo consulta o cluster a cada segundo e mostra qual pod respondeu, com a versão de cada um.</p>
+          <p class="lead">Esta página é servida por um Deployment com réplicas do nginx atrás de um Service NodePort. O painel abaixo consulta o cluster duas vezes por segundo e mostra qual pod respondeu, com a versão de cada um.</p>
         </div>
         <div class="status" id="status">
           <span class="pulse"></span>
@@ -274,7 +274,7 @@ data:
         var max = Math.max.apply(null, names.map(function (n) { return pods[n].count; }));
         podsEl.innerHTML = names.map(function (n) {
           var p = pods[n], a = alt(p.version) ? ' alt' : '';
-          var gone = now - p.last > 5000 ? ' gone' : '';
+          var gone = now - p.last > 8000 ? ' gone' : '';
           return '<li class="pod' + gone + '">' +
             '<span class="pod-name"><b></b><em>' + esc(n) + '</em></span>' +
             '<span class="ver' + a + '">v' + esc(p.version) + '</span>' +
@@ -282,11 +282,11 @@ data:
             '<span class="count">' + p.count + '</span></li>';
         }).join('');
         var versions = {};
-        names.forEach(function (n) { if (now - pods[n].last <= 5000) versions[pods[n].version] = true; });
+        names.forEach(function (n) { if (now - pods[n].last <= 8000) versions[pods[n].version] = true; });
         legendEl.innerHTML = Object.keys(versions).sort().map(function (v) {
           return '<span><i style="background:' + (alt(v) ? 'var(--v2)' : 'var(--accent)') + '"></i>v' + esc(v) + '</span>';
         }).join('');
-        var live = names.filter(function (n) { return now - pods[n].last <= 5000; }).length;
+        var live = names.filter(function (n) { return now - pods[n].last <= 8000; }).length;
         var st = document.getElementById('status');
         var down = now - lastOk > 4000;
         st.classList.toggle('down', down);
@@ -312,7 +312,7 @@ data:
             fails++;
             feed('<time>' + hhmmss(new Date()) + '</time><span class="err">falhou: ' + esc(e.message) + '</span><span></span>');
           })
-          .then(function () { render(); setTimeout(poll, 900); });
+          .then(function () { render(); setTimeout(poll, 500); });
       }
       poll();
     })();
