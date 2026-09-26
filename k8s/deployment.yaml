@@ -23,6 +23,7 @@ spec:
         app: app-portal
         version: v1.0.0
     spec:
+      terminationGracePeriodSeconds: 20
       containers:
       - name: nginx
         image: nginx:latest
@@ -59,6 +60,12 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+        # Dá tempo do Service tirar o pod dos endpoints antes do nginx parar;
+        # sem isso, uma ou outra requisição cai durante o rolling update.
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "5"]
         volumeMounts:
         - name: html-content
           mountPath: /usr/share/nginx/html
