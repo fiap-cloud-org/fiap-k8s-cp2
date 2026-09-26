@@ -29,6 +29,13 @@ spec:
         ports:
         - containerPort: 80
           name: http
+        env:
+        - name: APP_VERSION
+          value: "1.0.0"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         resources:
           requests:
             memory: "64Mi"
@@ -38,7 +45,7 @@ spec:
             cpu: "100m"
         livenessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: 80
           initialDelaySeconds: 10
           periodSeconds: 10
@@ -46,7 +53,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
@@ -56,8 +63,14 @@ spec:
         - name: html-content
           mountPath: /usr/share/nginx/html
           readOnly: true
+        - name: nginx-template
+          mountPath: /etc/nginx/templates
+          readOnly: true
       volumes:
       - name: html-content
         configMap:
           name: app-portal-html
+      - name: nginx-template
+        configMap:
+          name: app-portal-nginx
       restartPolicy: Always
