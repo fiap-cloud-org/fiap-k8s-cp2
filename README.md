@@ -168,7 +168,7 @@ Saída de uma execução real:
 2. Acesso pelo NodePort (http://localhost:30080)
   ok  /healthz responde
   ok  página do portal servida pelo ConfigMap
-  ok  Service distribuiu 30 requisições entre 3 pods
+  ok  Service distribuiu as requisições entre 3 pods
 3. Escalabilidade: 3 -> 5 réplicas
   ok  5 réplicas prontas
   ok  de volta a 3 réplicas
