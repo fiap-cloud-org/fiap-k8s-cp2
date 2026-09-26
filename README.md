@@ -18,7 +18,7 @@ Checkpoint 2 da disciplina de **Kubernetes** (FIAP, outubro de 2025). O cenário
 
 A entrega sobe o **App Portal** num cluster local com **kind**: um namespace `producao`, um Deployment `app-portal` com 3 réplicas do `nginx:latest`, um Service NodePort na porta **30080** e a página do portal num **ConfigMap**. Depois vêm os testes pedidos no enunciado: escalar para 5 réplicas e excluir um pod para ver o Kubernetes recriá-lo.
 
-Na revisão do projeto a página ganhou um **painel ao vivo**: ela consulta o Service duas vezes por segundo e mostra qual pod respondeu e com qual versão. Assim dá para ver na tela o balanceamento entre as réplicas, a escala e o rolling update acontecendo.
+A página do portal tem um **painel ao vivo**: ela consulta o Service duas vezes por segundo e mostra qual pod respondeu e com qual versão. Assim dá para ver na tela o balanceamento entre as réplicas, a escala e o rolling update acontecendo.
 
 ## Arquitetura
 
@@ -50,16 +50,16 @@ Na revisão do projeto a página ganhou um **painel ao vivo**: ela consulta o Se
 | Excluir um pod e ver a recuperação | `kubectl delete pod`, conferido pelo `scripts/validar.sh` |
 | Mensagem personalizada no `index.html` | Portal da TechFleet no ConfigMap `app-portal-html` |
 
-### O que a revisão acrescentou
+### Decisões técnicas
 
-| Melhoria | Como funciona |
+| Ponto | Como funciona |
 |---|---|
-| Nome real do pod na página | O nginx usa **SSI** (`ssi on`): `<!--# echo var="hostname" -->` vira o nome do pod que respondeu. Antes a página sorteava um id aleatório |
+| Nome real do pod na página | O nginx usa **SSI** (`ssi on`): `<!--# echo var="hostname" -->` vira o nome do pod que respondeu. Assim o painel mostra o pod real, não um id sorteado |
 | Painel ao vivo das réplicas | A página chama `GET /api/pod` duas vezes por segundo. A rota responde sem keep-alive, então cada chamada abre uma conexão nova e o Service distribui entre os pods |
 | Versão e nó por variável | `APP_VERSION` (valor fixo) e `NODE_NAME` (Downward API) entram no template do nginx pelo `envsubst` da imagem oficial |
 | Probes em `/healthz` | Readiness e liveness numa rota leve, sem depender da página |
-| Rolling update sem perder requisição | `preStop` com `sleep 5` dá tempo do Service tirar o pod dos endpoints antes do nginx parar. Sem ele, o teste perdia 1 requisição em cada 100 durante o rollout |
-| Manifestos em `k8s/` com Kustomize | `kubectl apply -k k8s` aplica tudo na ordem. Antes, `kubectl apply -f .` falhava por tentar aplicar o `kind-config.yaml` |
+| Rolling update sem perder requisição | `preStop` com `sleep 5` dá tempo do Service tirar o pod dos endpoints antes do nginx parar. No teste, o rollout passa com 0 requisições perdidas |
+| Manifestos em `k8s/` com Kustomize | `kubectl apply -k k8s` aplica tudo na ordem, separado do `kind-config.yaml`, que é configuração do cluster e não do Kubernetes |
 | Validação automática | `scripts/validar.sh` testa a entrega inteira; o GitHub Actions roda o mesmo script num cluster kind |
 
 ### Rotas servidas pelo nginx
@@ -97,7 +97,7 @@ fiap-k8s-cp2/
 └── docs/
     ├── arch.gif              # Diagrama de arquitetura
     ├── demo.webp             # Demo do portal
-    └── prints/               # Evidências da entrega original (outubro de 2025)
+    └── prints/               # Evidências da entrega (outubro de 2025)
 ```
 
 ## Fluxo de funcionamento
@@ -184,9 +184,9 @@ Tudo certo.
 
 O mesmo script roda no GitHub Actions a cada push e pull request, num cluster kind criado com o `kind-config.yaml` deste repositório, depois da validação dos manifestos com **kubeconform** e do **shellcheck**.
 
-### Evidências da entrega original
+### Evidências da entrega
 
-Prints de outubro de 2025, da primeira versão (manifestos ainda na raiz e a página antiga).
+Prints da execução do checkpoint em outubro de 2025.
 
 | Etapa | Print |
 |---|---|
@@ -198,8 +198,6 @@ Prints de outubro de 2025, da primeira versão (manifestos ainda na raiz e a pá
 | Portal pelo port-forward | ![Portal no navegador](docs/prints/06-port-forward-navegador.png) |
 | Escala de 3 para 5 réplicas | ![Escala](docs/prints/07-escala-3-para-5.png) |
 | Pod excluído e recriado | ![Exclusão de pod](docs/prints/08-exclusao-de-pod.png) |
-
----
 
 ## Autor
 
