@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-portal-html
+  namespace: producao
+  labels:
+    app: app-portal
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>TechFleet - App Portal</title>
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                color: white;
+            }
+            .container {
+                text-align: center;
+                background: rgba(255, 255, 255, 0.1);
+                padding: 3rem;
+                border-radius: 20px;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                max-width: 600px;
+            }
+            h1 {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+            .subtitle {
+                font-size: 1.5rem;
+                margin-bottom: 2rem;
+                opacity: 0.9;
+            }
+            .info {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 1.5rem;
+                border-radius: 10px;
+                margin: 1rem 0;
+            }
+            .status {
+                color: #4ade80;
+                font-weight: bold;
+                font-size: 1.2rem;
+            }
+            .pod-info {
+                font-size: 0.9rem;
+                opacity: 0.8;
+                margin-top: 1rem;
+            }
+            .logo {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">🚀</div>
+            <h1>TechFleet</h1>
+            <div class="subtitle">App Portal - Produção</div>
+            <div class="info">
+                <div class="status">✅ Sistema Online</div>
+                <p>Aplicação executando em ambiente Kubernetes</p>
+                <p><strong>Namespace:</strong> producao</p>
+                <p><strong>Service:</strong> NodePort 30080</p>
+                <p><strong>Replicas:</strong> Configuradas para alta disponibilidade</p>
+            </div>
+            <div class="pod-info">
+                <p>Pod ID: <span id="hostname">Carregando...</span></p>
+                <p>Data/Hora: <span id="datetime"></span></p>
+            </div>
+        </div>
+        
+        <script>
+            // Simula obtenção do hostname do pod
+            document.getElementById('hostname').textContent = 
+                'app-portal-' + Math.random().toString(36).substr(2, 9);
+            
+            // Atualiza data/hora
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById('datetime').textContent = 
+                    now.toLocaleString('pt-BR');
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        </script>
+    </body>
+    </html>
