@@ -41,11 +41,18 @@ kubectl -n "$NS" get pods -l app=app-portal -o name | grep -q "$alvo" && falha "
 [ "$(kubectl -n "$NS" get pods -l app=app-portal --no-headers | wc -l)" = "3" ] && ok "$alvo excluído e substituído; 3 pods de novo" || falha "quantidade de pods"
 
 echo "5. Rolling update: v1.0.0 -> v1.1.0 e rollback"
+# Enquanto o rollout acontece, um laço faz requisições e conta as falhas.
+log=$(mktemp)
+( while :; do curl -fsS -m 2 "$URL/api/pod" >/dev/null 2>&1 && echo ok >>"$log" || echo erro >>"$log"; sleep 0.2; done ) &
+laco=$!
 kubectl -n "$NS" set env deploy/"$DEPLOY" APP_VERSION=1.1.0 >/dev/null
 kubectl -n "$NS" rollout status deploy/"$DEPLOY" --timeout=180s >/dev/null
 sleep 2
-[ "$(versao)" = "1.1.0" ] && ok "todas as réplicas atualizadas para v1.1.0 sem derrubar o Service" || falha "versão: $(versao)"
-kubectl -n "$NS" rollout undo deploy/"$DEPLOY" >/dev/null
+kill "$laco"; wait "$laco" 2>/dev/null || true
+[ "$(versao)" = "1.1.0" ] && ok "todas as réplicas atualizadas para v1.1.0" || falha "versão: $(versao)"
+echo "      durante o rollout: $(grep -c ok "$log") respostas ok, $(grep -c erro "$log") falhas"
+rm -f "$log"
+kubectl -n "$NS" rollout undo deploy/"$DEPLOY" >/dev/null 2>&1
 kubectl -n "$NS" rollout status deploy/"$DEPLOY" --timeout=180s >/dev/null
 sleep 2
 [ "$(versao)" = "1.0.0" ] && ok "rollback para v1.0.0" || falha "versão após rollback: $(versao)"
