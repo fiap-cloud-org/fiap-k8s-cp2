@@ -80,16 +80,12 @@ data:
                 <p><strong>Replicas:</strong> Configuradas para alta disponibilidade</p>
             </div>
             <div class="pod-info">
-                <p>Pod ID: <span id="hostname">Carregando...</span></p>
+                <p>Pod ID: <span id="hostname"><!--# echo var="hostname" --></span></p>
                 <p>Data/Hora: <span id="datetime"></span></p>
             </div>
         </div>
         
         <script>
-            // Simula obtenção do hostname do pod
-            document.getElementById('hostname').textContent = 
-                'app-portal-' + Math.random().toString(36).substr(2, 9);
-            
             // Atualiza data/hora
             function updateDateTime() {
                 const now = new Date();
