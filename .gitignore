@@ -1,0 +1,9 @@
+# Sistema e editores
+.DS_Store
+.vscode/
+.idea/
+
+# Kubeconfig e arquivos locais
+kubeconfig*
+*.kubeconfig
+.env
